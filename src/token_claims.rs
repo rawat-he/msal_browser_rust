@@ -16,7 +16,7 @@ macro_rules! generate_claims {
         /// Covers all the claims as per the  IETF spec. If the claim doesn't match any of the standard ones
         /// it will return `Custom::(claim_name, claim_value)`
         /// Adds the azure specific ones too
-        #[derive(Clone, PartialEq)]
+        #[derive(Clone, PartialEq, Debug)]
         #[allow(non_camel_case_types)]
         pub enum TokenClaim {
             typ, // Always JWT
@@ -167,7 +167,28 @@ impl From<Object> for TokenClaims {
 }
 
 //TODO: Add an api for this
-impl TokenClaims {}
+impl TokenClaims {
+
+    /// Get a claim by its type
+    pub fn get_claim(&self, claim_type: &str) -> Option<&TokenClaim> {
+        self.0.iter().find(|claim| match claim {
+            TokenClaim::custom(key, _) => key == claim_type,
+            _ => format!("{:?}", claim) == claim_type,
+        })
+    }
+    /// Get a claim as a string (if applicable)
+    pub fn get_claim_as_string(&self, claim_type: &str) -> Option<String> {
+        match self.get_claim(claim_type) {
+            Some(TokenClaim::custom(_, value)) => value.as_string(),
+            Some(TokenClaim::roles(array)) => Some(format!("{:?}", array)),
+            Some(TokenClaim::groups(array)) => Some(format!("{:?}", array)),
+            Some(TokenClaim::email(email)) => Some(email.clone()),
+            Some(TokenClaim::name(name)) => Some(name.clone()),
+            _ => None,
+        }
+    }
+}
+
 
 #[cfg(test)]
 mod tests {
